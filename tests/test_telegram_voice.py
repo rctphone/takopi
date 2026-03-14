@@ -361,7 +361,7 @@ async def test_transcribe_voice_success() -> None:
 
 @pytest.mark.anyio
 async def test_gemini_model_routes_to_gemini_transcriber(monkeypatch) -> None:
-    """model='gemini-2.0-flash' should route to GeminiVoiceTranscriber."""
+    """model='gemini-2.5-flash' should route to GeminiVoiceTranscriber."""
     created = []
 
     class _SpyGemini:
@@ -383,7 +383,7 @@ async def test_gemini_model_routes_to_gemini_transcriber(monkeypatch) -> None:
         bot=bot,
         msg=_voice_message(),
         enabled=True,
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         reply=reply,
     )
     assert result == "gemini-result"
@@ -432,7 +432,7 @@ async def test_gemini_no_api_key_raises_value_error(monkeypatch) -> None:
 
     transcriber = GeminiVoiceTranscriber(api_key=None)
     with pytest.raises(ValueError, match="Gemini API key not found"):
-        await transcriber.transcribe(model="gemini-2.0-flash", audio_bytes=b"audio")
+        await transcriber.transcribe(model="gemini-2.5-flash", audio_bytes=b"audio")
 
 
 @pytest.mark.anyio
@@ -458,7 +458,7 @@ async def test_gemini_runtime_error_caught_in_transcribe_voice(monkeypatch) -> N
         bot=bot,
         msg=_voice_message(),
         enabled=True,
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         reply=reply,
     )
     assert result is None

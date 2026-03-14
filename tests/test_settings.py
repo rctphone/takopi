@@ -283,7 +283,7 @@ def test_gemini_model_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
             bot_token="token",
             chat_id=123,
             voice_transcription=True,
-            voice_transcription_model="gemini-2.0-flash",
+            voice_transcription_model="gemini-2.5-flash",
         )
 
 
@@ -296,7 +296,7 @@ def test_gemini_model_accepts_config_api_key(
         bot_token="token",
         chat_id=123,
         voice_transcription=True,
-        voice_transcription_model="gemini-2.0-flash",
+        voice_transcription_model="gemini-2.5-flash",
         voice_transcription_api_key="my-key",
     )
     assert cfg.voice_transcription_api_key == "my-key"
@@ -310,7 +310,7 @@ def test_gemini_model_accepts_env_api_key(
         bot_token="token",
         chat_id=123,
         voice_transcription=True,
-        voice_transcription_model="gemini-2.0-flash",
+        voice_transcription_model="gemini-2.5-flash",
     )
     assert cfg.voice_transcription_api_key is None
 
