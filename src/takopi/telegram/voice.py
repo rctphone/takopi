@@ -133,15 +133,7 @@ async def transcribe_voice(
             transcriber = OpenAIVoiceTranscriber(base_url=base_url, api_key=api_key)
     try:
         return await transcriber.transcribe(model=model, audio_bytes=audio_bytes)
-    except OpenAIError as exc:
-        logger.error(
-            "openai.transcribe.error",
-            error=str(exc),
-            error_type=exc.__class__.__name__,
-        )
-        await reply(text=str(exc).strip() or "voice transcription failed")
-        return None
-    except (RuntimeError, OSError, ValueError) as exc:
+    except (OpenAIError, RuntimeError, OSError, ValueError) as exc:
         logger.error(
             "voice.transcribe.error",
             error=str(exc),
