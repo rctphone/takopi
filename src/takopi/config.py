@@ -68,6 +68,11 @@ class ProjectConfig:
     chat_id: int | None = None
     topic_id: int | None = None
     default_trigger_mode: str | None = None
+    allowed_tools: list[str] | None = None
+
+    @property
+    def has_dedicated_chat(self) -> bool:
+        return self.chat_id is not None
 
     @property
     def worktrees_root(self) -> Path:

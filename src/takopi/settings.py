@@ -158,6 +158,7 @@ class ProjectSettings(BaseModel):
     chat_id: ChatId | None = None
     topic_id: StrictInt | None = None
     default_trigger_mode: Literal["all", "mentions"] | None = None
+    allowed_tools: list[NonEmptyStr] | None = None
 
 
 class TakopiSettings(BaseSettings):
@@ -317,6 +318,7 @@ class TakopiSettings(BaseSettings):
                 chat_id=chat_id,
                 topic_id=topic_id,
                 default_trigger_mode=entry.default_trigger_mode,
+                allowed_tools=entry.allowed_tools,
             )
 
         if default_project is not None:

@@ -81,6 +81,12 @@ async def _handle_ctx_command(
         await reply(text=text)
         return
     if action == "set":
+        if cfg.runtime.is_dedicated_chat_project(msg.chat_id, msg.thread_id):
+            await reply(
+                text="context is locked for this project — "
+                "cannot change project in a dedicated chat/topic.",
+            )
+            return
         rest = " ".join(tokens[1:])
         context, error = _parse_project_branch_args(
             rest,
@@ -111,6 +117,12 @@ async def _handle_ctx_command(
         )
         return
     if action == "clear":
+        if cfg.runtime.is_dedicated_chat_project(msg.chat_id, msg.thread_id):
+            await reply(
+                text="context is locked for this project — "
+                "cannot clear project in a dedicated chat/topic.",
+            )
+            return
         await store.clear_context(*tkey)
         await reply(text="topic binding cleared.")
         return

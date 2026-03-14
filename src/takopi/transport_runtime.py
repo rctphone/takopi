@@ -179,6 +179,7 @@ class TransportRuntime:
         reply_text: str | None,
         ambient_context: RunContext | None = None,
         chat_id: int | None = None,
+        lock_project: bool = False,
     ) -> ResolvedMessage:
         directives = parse_directives(
             text,
@@ -195,6 +196,7 @@ class TransportRuntime:
             reply_ctx=reply_ctx,
             ambient_context=ambient_context,
             default_project=default_project,
+            lock_project=lock_project,
         )
         engine_override = self._resolve_engine_override(
             directives_engine=directives.engine,
@@ -223,11 +225,17 @@ class TransportRuntime:
         reply_ctx: RunContext | None,
         ambient_context: RunContext | None,
         default_project: str | None,
+        lock_project: bool = False,
     ) -> tuple[RunContext | None, ContextSource]:
+        if lock_project and reply_ctx is not None:
+            reply_ctx = RunContext(
+                project=ambient_context.project if ambient_context else default_project,
+                branch=reply_ctx.branch,
+            )
         if reply_ctx is not None:
             return reply_ctx, "reply_ctx"
 
-        project_key = directives.project
+        project_key = directives.project if not lock_project else None
         branch = directives.branch
         if project_key is None:
             if ambient_context is not None and ambient_context.project is not None:
@@ -316,6 +324,27 @@ class TransportRuntime:
 
     def is_resume_line(self, line: str) -> bool:
         return self._router.is_resume_line(line)
+
+    def project_allowed_tools(self, context: RunContext | None) -> list[str] | None:
+        if context is None or context.project is None:
+            return None
+        project = self._projects.projects.get(context.project)
+        if project is None:
+            return None
+        return project.allowed_tools
+
+    def is_dedicated_chat_project(
+        self, chat_id: int | None, thread_id: int | None = None,
+    ) -> bool:
+        if chat_id is None:
+            return False
+        project_key = self._projects.project_for_topic(chat_id, thread_id)
+        if project_key is None:
+            project_key = self._projects.project_for_chat(chat_id)
+        if project_key is None:
+            return False
+        project = self._projects.projects.get(project_key)
+        return project is not None and project.has_dedicated_chat
 
     def resolve_run_cwd(self, context: RunContext | None) -> Path | None:
         try:

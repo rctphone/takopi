@@ -1240,11 +1240,15 @@ async def run_main_loop(
             ) -> ResolvedMessage | None:
                 reply = make_reply(cfg, msg)
                 try:
+                    lock_project = cfg.runtime.is_dedicated_chat_project(
+                        msg.chat_id, msg.thread_id,
+                    )
                     resolved = cfg.runtime.resolve_message(
                         text=text,
                         reply_text=msg.reply_to_text,
                         ambient_context=ambient_context,
                         chat_id=msg.chat_id,
+                        lock_project=lock_project,
                     )
                 except DirectiveError as exc:
                     await reply(text=f"error:\n{exc}")
@@ -1430,11 +1434,15 @@ async def run_main_loop(
                 msg = pending.msg
                 reply = make_reply(cfg, msg)
                 try:
+                    lock_project = cfg.runtime.is_dedicated_chat_project(
+                        msg.chat_id, msg.thread_id,
+                    )
                     resolved = cfg.runtime.resolve_message(
                         text=pending.text,
                         reply_text=msg.reply_to_text,
                         ambient_context=pending.ambient_context,
                         chat_id=msg.chat_id,
+                        lock_project=lock_project,
                     )
                 except DirectiveError as exc:
                     await reply(text=f"error:\n{exc}")

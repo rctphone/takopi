@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 from typing import cast
 
@@ -109,8 +109,8 @@ def _should_show_resume_line(
     stateful_mode: bool,
     context: RunContext | None,
 ) -> bool:
-    if show_resume_line:
-        return True
+    if not show_resume_line:
+        return False
     return not stateful_mode
 
 
@@ -177,6 +177,9 @@ async def _run_engine(
             await reply(text=f"error:\n{exc}")
             return
         runner: Runner = entry.runner
+        project_tools = runtime.project_allowed_tools(context)
+        if project_tools is not None and hasattr(runner, "allowed_tools"):
+            runner = replace(runner, allowed_tools=project_tools)
         if not show_resume_line:
             runner = cast(Runner, _ResumeLineProxy(runner))
         warning = _reasoning_warning(engine=runner.engine, run_options=run_options)
