@@ -6,7 +6,9 @@ telegram bridge for codex, claude code, opencode, pi. manage multiple projects a
 
 ## fork changes
 
+- **per-project topic routing & mentions mode**: projects can now set `topic_id` and `default_trigger_mode` in config to bind a forum topic to a specific project and use mentions-based triggering. admin/manage_topics checks relaxed to warnings so the bot works in groups where it's not an admin.
 - **native gemini voice transcription**: added `GeminiVoiceTranscriber` that calls the Gemini API directly via `google-genai` SDK, eliminating the need for the `takopi-voice` OpenAI-compatible proxy. models starting with `gemini` are automatically routed to the native transcriber. doctor checks updated to validate Gemini API keys.
+- **claude rate limit visibility**: `rate_limit_event` from Claude Code stream is now surfaced as a warning in Telegram instead of being silently dropped.
 
 ## features
 
