@@ -52,7 +52,7 @@ async def _handle_ctx_command(
     if error is not None:
         await reply(text=error)
         return
-    chat_project = _topics_chat_project(cfg, msg.chat_id)
+    chat_project = _topics_chat_project(cfg, msg.chat_id, msg.thread_id)
     tkey = _topic_key(msg, cfg, scope_chat_ids=scope_chat_ids)
     if tkey is None:
         await reply(text="this command only works inside a topic.")
@@ -281,7 +281,7 @@ async def _handle_topic_command(
     if error is not None:
         await reply(text=error)
         return
-    chat_project = _topics_chat_project(cfg, msg.chat_id)
+    chat_project = _topics_chat_project(cfg, msg.chat_id, msg.thread_id)
     context, error = _parse_project_branch_args(
         args_text,
         runtime=cfg.runtime,

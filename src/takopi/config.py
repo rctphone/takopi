@@ -66,6 +66,8 @@ class ProjectConfig:
     default_engine: str | None = None
     worktree_base: str | None = None
     chat_id: int | None = None
+    topic_id: int | None = None
+    default_trigger_mode: str | None = None
 
     @property
     def worktrees_root(self) -> Path:
@@ -79,6 +81,7 @@ class ProjectsConfig:
     projects: dict[str, ProjectConfig]
     default_project: str | None = None
     chat_map: dict[int, str] = field(default_factory=dict)
+    topic_map: dict[tuple[int, int], str] = field(default_factory=dict)
 
     def resolve(self, alias: str | None) -> ProjectConfig | None:
         if alias is None:
@@ -92,8 +95,29 @@ class ProjectsConfig:
             return None
         return self.chat_map.get(chat_id)
 
+    def project_for_topic(self, chat_id: int, thread_id: int | None) -> str | None:
+        if thread_id is None:
+            return None
+        return self.topic_map.get((chat_id, thread_id))
+
+    def trigger_mode_for_chat(
+        self, chat_id: int | None, thread_id: int | None = None,
+    ) -> str | None:
+        if chat_id is not None:
+            for key in (
+                self.project_for_topic(chat_id, thread_id) if thread_id else None,
+                self.project_for_chat(chat_id),
+            ):
+                if key is not None:
+                    p = self.projects.get(key)
+                    if p is not None and p.default_trigger_mode is not None:
+                        return p.default_trigger_mode
+        return None
+
     def project_chat_ids(self) -> tuple[int, ...]:
-        return tuple(self.chat_map.keys())
+        ids = set(self.chat_map.keys())
+        ids.update(cid for cid, _ in self.topic_map.keys())
+        return tuple(sorted(ids))
 
 
 def dump_toml(config: dict[str, Any]) -> str:

@@ -139,6 +139,8 @@ class ProjectSettings(BaseModel):
     default_engine: NonEmptyStr | None = None
     worktree_base: NonEmptyStr | None = None
     chat_id: ChatId | None = None
+    topic_id: StrictInt | None = None
+    default_trigger_mode: Literal["all", "mentions"] | None = None
 
 
 class TakopiSettings(BaseSettings):
@@ -230,6 +232,7 @@ class TakopiSettings(BaseSettings):
         engine_map = {engine.lower(): engine for engine in engine_ids}
         projects: dict[str, ProjectConfig] = {}
         chat_map: dict[int, str] = {}
+        topic_map: dict[tuple[int, int], str] = {}
 
         for raw_alias, entry in self.projects.items():
             alias = raw_alias
@@ -260,19 +263,33 @@ class TakopiSettings(BaseSettings):
             worktree_base = entry.worktree_base
 
             chat_id = entry.chat_id
+            topic_id = entry.topic_id
+            if topic_id is not None and chat_id is None:
+                raise ConfigError(
+                    f"projects.{alias}.topic_id requires chat_id"
+                )
             if chat_id is not None:
-                if default_chat_id is not None and chat_id == default_chat_id:
-                    raise ConfigError(
-                        f"Invalid `projects.{alias}.chat_id` in {config_path}; "
-                        "must not match transports.telegram.chat_id."
-                    )
-                if chat_id in chat_map:
-                    existing = chat_map[chat_id]
-                    raise ConfigError(
-                        f"Duplicate `projects.*.chat_id` {chat_id} in {config_path}; "
-                        f"already used by {existing!r}."
-                    )
-                chat_map[chat_id] = alias_key
+                if topic_id is not None:
+                    tkey = (chat_id, topic_id)
+                    if tkey in topic_map:
+                        raise ConfigError(
+                            f"Duplicate topic ({chat_id}, {topic_id}) in {config_path}; "
+                            f"already used by {topic_map[tkey]!r}."
+                        )
+                    topic_map[tkey] = alias_key
+                else:
+                    if default_chat_id is not None and chat_id == default_chat_id:
+                        raise ConfigError(
+                            f"Invalid `projects.{alias}.chat_id` in {config_path}; "
+                            "must not match transports.telegram.chat_id."
+                        )
+                    if chat_id in chat_map:
+                        existing = chat_map[chat_id]
+                        raise ConfigError(
+                            f"Duplicate `projects.*.chat_id` {chat_id} in {config_path}; "
+                            f"already used by {existing!r}."
+                        )
+                    chat_map[chat_id] = alias_key
 
             projects[alias_key] = ProjectConfig(
                 alias=alias,
@@ -281,6 +298,8 @@ class TakopiSettings(BaseSettings):
                 default_engine=default_engine,
                 worktree_base=worktree_base,
                 chat_id=chat_id,
+                topic_id=topic_id,
+                default_trigger_mode=entry.default_trigger_mode,
             )
 
         if default_project is not None:
@@ -296,6 +315,7 @@ class TakopiSettings(BaseSettings):
             projects=projects,
             default_project=default_project,
             chat_map=chat_map,
+            topic_map=topic_map,
         )
 
 

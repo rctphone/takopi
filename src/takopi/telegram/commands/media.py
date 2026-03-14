@@ -47,7 +47,7 @@ async def _handle_media_group(
     )
     reply = make_reply(cfg, command_msg)
     topic_key = _topic_key(command_msg, cfg) if topic_store is not None else None
-    chat_project = _topics_chat_project(cfg, command_msg.chat_id)
+    chat_project = _topics_chat_project(cfg, command_msg.chat_id, command_msg.thread_id)
     bound_context = (
         await topic_store.get_context(*topic_key)
         if topic_store is not None and topic_key is not None

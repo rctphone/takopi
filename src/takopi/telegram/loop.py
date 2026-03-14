@@ -802,6 +802,11 @@ class MediaGroupBuffer:
                 thread_id=messages[0].thread_id,
                 chat_prefs=self._chat_prefs,
                 topic_store=self._topic_store,
+                default_trigger_mode=(
+                    self._cfg.runtime.trigger_mode_for_chat(
+                        messages[0].chat_id, messages[0].thread_id,
+                    ) or "all"
+                ),
             )
             command_ids = self._command_ids()
             if trigger_mode == "mentions" and not any(
@@ -1246,7 +1251,7 @@ async def run_main_loop(
                     return None
                 topic_key = resolve_topic_key(msg)
                 chat_project = (
-                    _topics_chat_project(cfg, msg.chat_id)
+                    _topics_chat_project(cfg, msg.chat_id, msg.thread_id)
                     if cfg.topics.enabled
                     else None
                 )
@@ -1541,7 +1546,9 @@ async def run_main_loop(
                 )
                 stateful_mode = topic_key is not None or chat_session_key is not None
                 chat_project = (
-                    _topics_chat_project(cfg, chat_id) if cfg.topics.enabled else None
+                    _topics_chat_project(cfg, chat_id, msg.thread_id)
+                    if cfg.topics.enabled
+                    else None
                 )
                 bound_context = (
                     await state.topic_store.get_context(*topic_key)
@@ -1660,6 +1667,10 @@ async def run_main_loop(
                     thread_id=msg.thread_id,
                     chat_prefs=state.chat_prefs,
                     topic_store=state.topic_store,
+                    default_trigger_mode=(
+                        cfg.runtime.trigger_mode_for_chat(chat_id, msg.thread_id)
+                        or "all"
+                    ),
                 )
                 if trigger_mode == "mentions" and not should_trigger_run(
                     msg,

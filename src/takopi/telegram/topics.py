@@ -5,11 +5,14 @@ from typing import TYPE_CHECKING
 
 from ..config import ConfigError
 from ..context import RunContext
+from ..logging import get_logger
 from ..settings import TelegramTopicsSettings
 from ..transport_runtime import TransportRuntime
 from .client import BotClient
 from .topic_state import TopicStateStore, TopicThreadSnapshot
 from .types import TelegramIncomingMessage
+
+_log = get_logger(__name__)
 
 if TYPE_CHECKING:
     from .bridge import TelegramBridgeConfig
@@ -59,7 +62,13 @@ def _topics_scope_label(cfg: TelegramBridgeConfig) -> str:
     return resolved
 
 
-def _topics_chat_project(cfg: TelegramBridgeConfig, chat_id: int) -> str | None:
+def _topics_chat_project(
+    cfg: TelegramBridgeConfig, chat_id: int, thread_id: int | None = None,
+) -> str | None:
+    if thread_id is not None:
+        topic_project = cfg.runtime.project_for_topic(chat_id, thread_id)
+        if topic_project is not None:
+            return topic_project
     context = cfg.runtime.default_context_for_chat(chat_id)
     return context.project if context is not None else None
 
@@ -245,12 +254,15 @@ async def _validate_topics_setup_for(
         if member.status == "creator":
             continue
         if member.status != "administrator":
-            raise ConfigError(
-                "topics enabled but bot is not an admin "
-                f"(chat_id={chat_id}); promote it and grant manage topics."
+            _log.warning(
+                "topics.validation.not_admin",
+                chat_id=chat_id,
+                hint="bot is not an admin; topic renaming will be unavailable",
             )
+            continue
         if member.can_manage_topics is not True:
-            raise ConfigError(
-                "topics enabled but bot lacks manage topics permission "
-                f"(chat_id={chat_id}); grant can_manage_topics."
+            _log.warning(
+                "topics.validation.no_manage_topics",
+                chat_id=chat_id,
+                hint="bot lacks can_manage_topics; topic renaming will be unavailable",
             )

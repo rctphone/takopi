@@ -285,6 +285,14 @@ class TransportRuntime:
             return None
         return RunContext(project=project_key, branch=None)
 
+    def project_for_topic(self, chat_id: int, thread_id: int | None) -> str | None:
+        return self._projects.project_for_topic(chat_id, thread_id)
+
+    def trigger_mode_for_chat(
+        self, chat_id: int | None, thread_id: int | None = None,
+    ) -> str | None:
+        return self._projects.trigger_mode_for_chat(chat_id, thread_id)
+
     def project_chat_ids(self) -> tuple[int, ...]:
         return self._projects.project_chat_ids()
 
