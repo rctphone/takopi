@@ -316,9 +316,10 @@ class ClaudeRunner(ResumeTokenMixin, JsonlSubprocessRunner):
     def format_resume(self, token: ResumeToken) -> str:
         if token.engine != ENGINE:
             raise RuntimeError(f"resume token is for engine {token.engine!r}")
+        from urllib.parse import quote
         short = token.value[-3:]
         full_cmd = f"claude --resume {token.value}"
-        return f"[↩ {short}](tg://copy/{full_cmd})"
+        return f"[↩ {short}](tg://copy/{quote(full_cmd)})"
 
     def _build_args(self, prompt: str, resume: ResumeToken | None) -> list[str]:
         run_options = get_run_options()

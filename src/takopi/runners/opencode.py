@@ -314,9 +314,10 @@ class OpenCodeRunner(ResumeTokenMixin, JsonlSubprocessRunner):
     def format_resume(self, token: ResumeToken) -> str:
         if token.engine != ENGINE:
             raise RuntimeError(f"resume token is for engine {token.engine!r}")
+        from urllib.parse import quote
         short = token.value[-3:]
         full_cmd = f"opencode --session {token.value}"
-        return f"[↩ {short}](tg://copy/{full_cmd})"
+        return f"[↩ {short}](tg://copy/{quote(full_cmd)})"
 
     def command(self) -> str:
         return self.opencode_cmd

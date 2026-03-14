@@ -34,9 +34,10 @@ class ResumeTokenMixin:
     def format_resume(self, token: ResumeToken) -> str:
         if token.engine != self.engine:
             raise RuntimeError(f"resume token is for engine {token.engine!r}")
+        from urllib.parse import quote
         short = token.value[-3:]
         full_cmd = f"{self.engine} resume {token.value}"
-        return f"[↩ {short}](tg://copy/{full_cmd})"
+        return f"[↩ {short}](tg://copy/{quote(full_cmd)})"
 
     def is_resume_line(self, line: str) -> bool:
         return bool(self.resume_re.match(line))

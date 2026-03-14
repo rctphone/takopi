@@ -194,7 +194,7 @@ async def test_base_runner_run_impl_not_implemented() -> None:
 def test_resume_token_format_and_extract() -> None:
     runner = _DummyRunner()
     token = ResumeToken(engine=runner.engine, value="abc")
-    assert runner.format_resume(token) == "[↩ abc](tg://copy/dummy resume abc)"  # last 3 chars
+    assert runner.format_resume(token) == "[↩ abc](tg://copy/dummy%20resume%20abc)"
     assert runner.is_resume_line("`dummy resume abc`") is True
     text = "`dummy resume first`\n`dummy resume second`"
     assert runner.extract_resume(text) == ResumeToken(

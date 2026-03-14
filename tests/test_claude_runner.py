@@ -56,7 +56,7 @@ def test_claude_resume_format_and_extract() -> None:
     runner = ClaudeRunner(claude_cmd="claude")
     token = ResumeToken(engine=ENGINE, value="sid")
 
-    assert runner.format_resume(token) == "[↩ sid](tg://copy/claude --resume sid)"  # short value, last 3 = "sid"
+    assert runner.format_resume(token) == "[↩ sid](tg://copy/claude%20--resume%20sid)"
     assert runner.extract_resume("`claude --resume sid`") == token
     assert runner.extract_resume("claude -r other") == ResumeToken(
         engine=ENGINE, value="other"

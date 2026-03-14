@@ -331,7 +331,7 @@ async def test_bridge_flow_sends_progress_edits_and_final_resume() -> None:
     assert "codex" in transport.send_calls[0]["message"].text
     assert len(transport.edit_calls) >= 1
     assert session_id in transport.send_calls[-1]["message"].text
-    assert "codex resume" in transport.send_calls[-1]["message"].text.lower()
+    assert "codex%20resume" in transport.send_calls[-1]["message"].text.lower()
     assert transport.send_calls[-1]["options"].replace == transport.send_calls[0]["ref"]
 
 
@@ -363,7 +363,7 @@ async def test_final_message_includes_ctx_line() -> None:
     assert transport.send_calls
     final_text = transport.send_calls[-1]["message"].text
     assert "`ctx: takopi @feat/api`" in final_text
-    assert "codex resume" in final_text.lower()
+    assert "codex%20resume" in final_text.lower()
 
 
 @pytest.mark.anyio
@@ -439,4 +439,4 @@ async def test_handle_message_error_preserves_resume_token() -> None:
     last_edit = transport.edit_calls[-1]["message"].text
     assert "error" in last_edit.lower()
     assert session_id in last_edit
-    assert "codex resume" in last_edit.lower()
+    assert "codex%20resume" in last_edit.lower()
