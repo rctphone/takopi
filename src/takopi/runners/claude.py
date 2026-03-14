@@ -274,6 +274,28 @@ def translate_claude_event(
                     usage=usage or None,
                 )
             ]
+        case claude_schema.StreamRateLimitEvent(
+            retry_after_ms=retry_after_ms,
+        ):
+            wait_s = (retry_after_ms or 0) / 1000
+            title_text = f"rate limited, retrying in {wait_s:.0f}s"
+            state.note_seq += 1
+            action_id = f"claude.rate_limit.{state.note_seq}"
+            detail: dict[str, Any] = {}
+            if retry_after_ms is not None:
+                detail["retry_after_ms"] = retry_after_ms
+            if event.message:
+                detail["message"] = event.message
+            return [
+                factory.action_completed(
+                    action_id=action_id,
+                    kind="warning",
+                    title=title_text,
+                    ok=True,
+                    detail=detail,
+                    level="warning",
+                )
+            ]
         case _:
             return []
 
