@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal, Self
 from collections.abc import Iterable
 
 from pydantic import (
@@ -117,6 +118,22 @@ class TelegramTransportSettings(BaseModel):
     media_group_debounce_s: float = Field(default=1.0, ge=0)
     topics: TelegramTopicsSettings = Field(default_factory=TelegramTopicsSettings)
     files: TelegramFilesSettings = Field(default_factory=TelegramFilesSettings)
+
+    @model_validator(mode="after")
+    def _require_gemini_api_key(self) -> Self:
+        if (
+            self.voice_transcription
+            and self.voice_transcription_model.startswith("gemini")
+            and self.voice_transcription_api_key is None
+            and not os.environ.get("GEMINI_API_KEY")
+            and not os.environ.get("GOOGLE_API_KEY")
+        ):
+            raise ValueError(
+                "voice_transcription_api_key is required when "
+                "voice_transcription_model starts with 'gemini' "
+                "(or set GEMINI_API_KEY / GOOGLE_API_KEY env var)"
+            )
+        return self
 
 
 class TransportsSettings(BaseModel):

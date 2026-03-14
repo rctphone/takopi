@@ -5,8 +5,11 @@ from pathlib import Path
 import pytest
 
 from takopi.config import ConfigError, read_config
+from pydantic import ValidationError
+
 from takopi.settings import (
     TakopiSettings,
+    TelegramTransportSettings,
     load_settings,
     load_settings_if_exists,
     require_telegram,
@@ -270,3 +273,57 @@ def test_load_settings_without_telegram(tmp_path: Path) -> None:
     assert settings.transport_config("my-transport", config_path=config_path) == {
         "some_key": "value"
     }
+
+
+def test_gemini_model_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    with pytest.raises(ValidationError, match="voice_transcription_api_key is required"):
+        TelegramTransportSettings(
+            bot_token="token",
+            chat_id=123,
+            voice_transcription=True,
+            voice_transcription_model="gemini-2.0-flash",
+        )
+
+
+def test_gemini_model_accepts_config_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    cfg = TelegramTransportSettings(
+        bot_token="token",
+        chat_id=123,
+        voice_transcription=True,
+        voice_transcription_model="gemini-2.0-flash",
+        voice_transcription_api_key="my-key",
+    )
+    assert cfg.voice_transcription_api_key == "my-key"
+
+
+def test_gemini_model_accepts_env_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "env-key")
+    cfg = TelegramTransportSettings(
+        bot_token="token",
+        chat_id=123,
+        voice_transcription=True,
+        voice_transcription_model="gemini-2.0-flash",
+    )
+    assert cfg.voice_transcription_api_key is None
+
+
+def test_non_gemini_model_does_not_require_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    cfg = TelegramTransportSettings(
+        bot_token="token",
+        chat_id=123,
+        voice_transcription=True,
+        voice_transcription_model="whisper-1",
+    )
+    assert cfg.voice_transcription_api_key is None
