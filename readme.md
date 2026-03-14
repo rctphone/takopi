@@ -4,6 +4,10 @@
 
 telegram bridge for codex, claude code, opencode, pi. manage multiple projects and worktrees, stream progress, and resume sessions anywhere.
 
+## fork changes
+
+- **native gemini voice transcription**: added `GeminiVoiceTranscriber` that calls the Gemini API directly via `google-genai` SDK, eliminating the need for the `takopi-voice` OpenAI-compatible proxy. models starting with `gemini` are automatically routed to the native transcriber. doctor checks updated to validate Gemini API keys.
+
 ## features
 
 - projects and worktrees: work on multiple repos/branches simultaneously, branches are git worktrees

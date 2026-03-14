@@ -52,6 +52,12 @@ def _doctor_voice_checks(settings: TelegramTransportSettings) -> list[DoctorChec
         return [
             DoctorCheck("voice transcription", "ok", "voice_transcription_api_key set")
         ]
+    is_gemini = settings.voice_transcription_model.startswith("gemini")
+    if is_gemini:
+        for var in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+            if os.environ.get(var):
+                return [DoctorCheck("voice transcription", "ok", f"{var} set")]
+        return [DoctorCheck("voice transcription", "error", "Gemini API key not set")]
     if os.environ.get("OPENAI_API_KEY"):
         return [DoctorCheck("voice transcription", "ok", "OPENAI_API_KEY set")]
     return [DoctorCheck("voice transcription", "error", "API key not set")]

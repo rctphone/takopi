@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import os
 from collections.abc import Awaitable, Callable
 from typing import Protocol
 
@@ -52,6 +53,43 @@ class OpenAIVoiceTranscriber:
         return response.text
 
 
+class GeminiVoiceTranscriber:
+    def __init__(self, *, api_key: str | None = None) -> None:
+        self._api_key = api_key
+
+    async def transcribe(self, *, model: str, audio_bytes: bytes) -> str:
+        from google import genai
+
+        api_key = (
+            self._api_key
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+        )
+        if not api_key:
+            raise ValueError(
+                "Gemini API key not found. Set voice_transcription_api_key "
+                "in config, or GEMINI_API_KEY / GOOGLE_API_KEY env var."
+            )
+        client = genai.Client(api_key=api_key)
+        try:
+            audio_file = io.BytesIO(audio_bytes)
+            audio_file.name = "voice.ogg"
+            upload = await client.aio.files.upload(
+                file=audio_file,
+                config={"mime_type": "audio/ogg"},
+            )
+            response = await client.aio.models.generate_content(
+                model=model,
+                contents=[
+                    upload,
+                    "Transcribe this audio verbatim. Return only the transcription text, nothing else.",
+                ],
+            )
+            return response.text
+        except Exception as exc:
+            raise RuntimeError(str(exc)) from exc
+
+
 async def transcribe_voice(
     *,
     bot: BotClient,
@@ -89,7 +127,10 @@ async def transcribe_voice(
         await reply(text="voice message is too large to transcribe.")
         return None
     if transcriber is None:
-        transcriber = OpenAIVoiceTranscriber(base_url=base_url, api_key=api_key)
+        if model.startswith("gemini"):
+            transcriber = GeminiVoiceTranscriber(api_key=api_key)
+        else:
+            transcriber = OpenAIVoiceTranscriber(base_url=base_url, api_key=api_key)
     try:
         return await transcriber.transcribe(model=model, audio_bytes=audio_bytes)
     except OpenAIError as exc:

@@ -13,7 +13,11 @@ from takopi.telegram.api_models import (
 )
 from takopi.telegram.client import BotClient
 from takopi.telegram.types import TelegramIncomingMessage, TelegramVoice
-from takopi.telegram.voice import VOICE_TRANSCRIPTION_DISABLED_HINT, transcribe_voice
+from takopi.telegram.voice import (
+    VOICE_TRANSCRIPTION_DISABLED_HINT,
+    GeminiVoiceTranscriber,
+    transcribe_voice,
+)
 
 
 class _Bot(BotClient):
@@ -350,3 +354,113 @@ async def test_transcribe_voice_success() -> None:
     assert result == "transcribed"
     assert replies == []
     assert transcriber.calls
+
+
+# -- Gemini routing tests ---------------------------------------------------
+
+
+@pytest.mark.anyio
+async def test_gemini_model_routes_to_gemini_transcriber(monkeypatch) -> None:
+    """model='gemini-2.0-flash' should route to GeminiVoiceTranscriber."""
+    created = []
+
+    class _SpyGemini:
+        def __init__(self, *, api_key=None):
+            created.append(self)
+
+        async def transcribe(self, *, model, audio_bytes):
+            return "gemini-result"
+
+    monkeypatch.setattr("takopi.telegram.voice.GeminiVoiceTranscriber", _SpyGemini)
+
+    replies: list[str] = []
+
+    async def reply(**kwargs) -> None:
+        replies.append(kwargs["text"])
+
+    bot = _Bot(file_info=File(file_path="voice.ogg"), audio=b"audio")
+    result = await transcribe_voice(
+        bot=bot,
+        msg=_voice_message(),
+        enabled=True,
+        model="gemini-2.0-flash",
+        reply=reply,
+    )
+    assert result == "gemini-result"
+    assert len(created) == 1
+
+
+@pytest.mark.anyio
+async def test_non_gemini_model_routes_to_openai_transcriber(monkeypatch) -> None:
+    """Non-gemini model should route to OpenAIVoiceTranscriber."""
+    created = []
+
+    class _SpyOpenAI:
+        def __init__(self, *, base_url=None, api_key=None):
+            created.append(self)
+
+        async def transcribe(self, *, model, audio_bytes):
+            return "openai-result"
+
+    monkeypatch.setattr("takopi.telegram.voice.OpenAIVoiceTranscriber", _SpyOpenAI)
+
+    replies: list[str] = []
+
+    async def reply(**kwargs) -> None:
+        replies.append(kwargs["text"])
+
+    bot = _Bot(file_info=File(file_path="voice.ogg"), audio=b"audio")
+    result = await transcribe_voice(
+        bot=bot,
+        msg=_voice_message(),
+        enabled=True,
+        model="gpt-4o-mini-transcribe",
+        reply=reply,
+    )
+    assert result == "openai-result"
+    assert len(created) == 1
+
+
+# -- GeminiVoiceTranscriber unit tests --------------------------------------
+
+
+@pytest.mark.anyio
+async def test_gemini_no_api_key_raises_value_error(monkeypatch) -> None:
+    """GeminiVoiceTranscriber raises ValueError when no key is available."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+
+    transcriber = GeminiVoiceTranscriber(api_key=None)
+    with pytest.raises(ValueError, match="Gemini API key not found"):
+        await transcriber.transcribe(model="gemini-2.0-flash", audio_bytes=b"audio")
+
+
+@pytest.mark.anyio
+async def test_gemini_runtime_error_caught_in_transcribe_voice(monkeypatch) -> None:
+    """RuntimeError from GeminiVoiceTranscriber is caught and replied."""
+
+    class _FailingGemini:
+        def __init__(self, *, api_key=None):
+            pass
+
+        async def transcribe(self, *, model, audio_bytes):
+            raise RuntimeError("Gemini API failed")
+
+    monkeypatch.setattr("takopi.telegram.voice.GeminiVoiceTranscriber", _FailingGemini)
+
+    replies: list[str] = []
+
+    async def reply(**kwargs) -> None:
+        replies.append(kwargs["text"])
+
+    bot = _Bot(file_info=File(file_path="voice.ogg"), audio=b"audio")
+    result = await transcribe_voice(
+        bot=bot,
+        msg=_voice_message(),
+        enabled=True,
+        model="gemini-2.0-flash",
+        reply=reply,
+    )
+    assert result is None
+    assert len(replies) == 1
+    assert "Gemini API failed" in replies[0]
