@@ -38,14 +38,16 @@ def test_pi_resume_format_and_extract(tmp_path: Path) -> None:
     session_path = tmp_path / "session.jsonl"
     token = ResumeToken(engine=ENGINE, value=str(session_path))
 
-    assert runner.format_resume(token) == f"`pi --session {session_path}`"
+    short = str(session_path)[-3:]
+    assert runner.format_resume(token) == f"[↩ {short}](tg://copy/pi --session {session_path})"
     assert runner.extract_resume(f"`pi --session {session_path}`") == token
     assert runner.extract_resume(f'pi --session "{session_path}"') == token
     assert runner.extract_resume("`codex resume sid`") is None
 
     spaced_path = tmp_path / "pi session.jsonl"
     spaced = ResumeToken(engine=ENGINE, value=str(spaced_path))
-    assert runner.format_resume(spaced) == f'`pi --session "{spaced_path}"`'
+    spaced_short = str(spaced_path)[-3:]
+    assert runner.format_resume(spaced) == f'[↩ {spaced_short}](tg://copy/pi --session "{spaced_path}")'
     assert runner.extract_resume(f'`pi --session "{spaced_path}"`') == spaced
 
 
